@@ -1,14 +1,26 @@
 import streamlit as st
 import platform
-from data.setup_steps import setup_steps
+from data.setup_steps import setup_steps  # Your steps list
 
 st.set_page_config(page_title="Setup Buddy", page_icon="🚀", layout="wide")
 
-# Styling
+# Styling (clean, modern)
 st.markdown("""
 <style>
-    .big-font {font-size:20px !important; line-height:1.6;}
-    .title {font-size:42px !important; font-weight:bold; color:#1E88E5;}
+    .big-font {font-size:22px !important; line-height:1.8;}
+    .title {font-size:48px !important; font-weight:300; color:#007aff; letter-spacing:1px;}
+    .stButton > button {
+        background-color: #007aff;
+        color: white;
+        border-radius: 8px;
+        border: none;
+        padding: 10px 20px;
+        font-size: 18px;
+    }
+    .stButton > button:hover {
+        background-color: #005bb5;
+    }
+    .sidebar .stButton > button {width: 100%; text-align: left;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -16,17 +28,20 @@ st.markdown("""
 os_name = platform.system()
 is_windows = os_name == "Windows"
 
+st.sidebar.write(f"**Detected OS:** {os_name}")
+
 # Title
 st.markdown('<p class="title">Setup Buddy</p>', unsafe_allow_html=True)
-st.markdown("### Guided setup for Luigi Workshop – use arrows or sidebar to navigate!")
+st.markdown("### Guided setup for Luigi Workshop – click any step to jump")
 
-# Sidebar: Step list menu
-st.sidebar.header("Jump to Step")
+# Sidebar: Full list view of all steps (clickable)
+st.sidebar.header("All Steps")
+current = st.session_state.get('current_step', 0)
 for i, step in enumerate(setup_steps):
     label = step["title"]
-    if i == st.session_state.get('current_step', 0):
-        label = f"**{label}** ← Current"
-    if st.sidebar.button(label, key=f"jump_{i}"):
+    if i == current:
+        label = f"→ {label}"
+    if st.sidebar.button(label, key=f"jump_{i}", use_container_width=True):
         st.session_state.current_step = i
         st.rerun()
 
@@ -36,7 +51,7 @@ if 'current_step' not in st.session_state:
 
 step = setup_steps[st.session_state.current_step]
 
-# Progress
+# Progress bar (modern, thin)
 total = len(setup_steps)
 st.progress(st.session_state.current_step / total)
 st.caption(f"Step {st.session_state.current_step + 1} of {total}")
@@ -55,40 +70,28 @@ if step.get("command"):
     lang = "powershell" if is_windows else "bash"
     st.code(cmd, language=lang)
 
-# Navigation buttons
+# Bottom navigation buttons
 col1, col2 = st.columns(2)
-if col1.button("⬅️ Previous Step"):
+with col1:
     if st.session_state.current_step > 0:
-        st.session_state.current_step -= 1
-        st.rerun()
+        if st.button("⬅️ Previous"):
+            st.session_state.current_step -= 1
+            st.rerun()
 
-if col2.button("Next Step ➡️"):
-    if st.session_state.current_step < total - 1:
-        st.session_state.current_step += 1
-        st.rerun()
-    else:
-        st.balloons()
-        st.success("All done! You're workshop-ready 🎉")
+with col2:
+    if st.button("Next ➡️"):
+        if st.session_state.current_step < total - 1:
+            st.session_state.current_step += 1
+            st.rerun()
+        else:
+            st.balloons()
+            st.success("All done! You're workshop-ready 🎉")
 
-# Help button
+# Step-specific help
 if st.button("❓ Stuck? Show Help"):
     with st.expander("Fixes for this step", expanded=True):
         for tip in step.get("troubleshooting", []):
             st.markdown(f"- {tip}")
-
-# Keyboard navigation (arrow keys)
-st.markdown("""
-<script>
-const doc = window.parent.document;
-doc.addEventListener('keydown', function(e) {
-    if (e.key === 'ArrowLeft') {
-        document.querySelector('[data-testid="stButton"][aria-label*="Previous"]').click();
-    } else if (e.key === 'ArrowRight') {
-        document.querySelector('[data-testid="stButton"][aria-label*="Next"]').click();
-    }
-});
-</script>
-""", unsafe_allow_html=True)
 
 # Footer
 st.markdown("---")
